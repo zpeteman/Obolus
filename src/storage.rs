@@ -1,17 +1,19 @@
-use std::fs;
-use std::io;
-use crate::models::Budget;
+use std::{fs, io, path::Path};
 use serde_json;
+use super::app::Transaction;
 
-const FILE_PATH: &str = "data/transactions.json";
+const FILE_PATH: &str = "transactions.json";
 
-pub fn save_budget(budget: &Budget) -> io::Result<()> {
-    let data = serde_json::to_string(budget)?;
+pub fn save_transactions(transactions: &[Transaction]) -> io::Result<()> {
+    let data = serde_json::to_string(transactions)?;
     fs::write(FILE_PATH, data)
 }
 
-pub fn load_budget() -> io::Result<Budget> {
-    let data = fs::read_to_string(FILE_PATH)?;
-    let budget: Budget = serde_json::from_str(&data)?;
-    Ok(budget)
+pub fn load_transactions() -> io::Result<Vec<Transaction>> {
+    if Path::new(FILE_PATH).exists() {
+        let data = fs::read_to_string(FILE_PATH)?;
+        Ok(serde_json::from_str(&data)?)
+    } else {
+        Ok(Vec::new())
+    }
 }

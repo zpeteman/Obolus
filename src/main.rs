@@ -1,39 +1,33 @@
-mod models;
-mod ui;
+mod app;
 mod storage;
 
-use crossterm::{terminal, execute};
-use tui::{backend::CrosstermBackend, Terminal};
+use crossterm::{execute, terminal};
 use std::{io, error::Error};
-use models::AppState;
-use storage::{save_budget, load_budget};
+use tui::{backend::CrosstermBackend, Terminal};
 
 fn main() -> Result<(), Box<dyn Error>> {
-    // Initialize terminal
+    // Terminal setup
     let mut stdout = io::stdout();
     terminal::enable_raw_mode()?;
     execute!(stdout, terminal::EnterAlternateScreen)?;
     
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
-    let mut state = AppState::new();
-
-    // Load existing budget
-    if let Ok(budget) = load_budget() {
-        state.budget = budget;
-    }
-
+    let mut app = app::App::new();
+    
+    // Load existing data
+    app.transactions = storage::load_transactions().unwrap_or_default();
+    
     // Main loop
     loop {
-        terminal.draw(|f| ui::render(f, &state))?;
-        
-        if !ui::handle_input(&mut state) {
+        terminal.draw(|f| app.render(f))?;
+        if !app.handle_input()? {
             break;
         }
     }
-
-    // Save and cleanup
-    save_budget(&state.budget)?;
+    
+    // Save data and cleanup
+    storage::save_transactions(&app.transactions)?;
     terminal::disable_raw_mode()?;
     execute!(io::stdout(), terminal::LeaveAlternateScreen)?;
     Ok(())
